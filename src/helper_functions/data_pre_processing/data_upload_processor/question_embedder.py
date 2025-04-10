@@ -177,3 +177,39 @@ def process_question_list_pipeline(question_df: pd.DataFrame, api_key: str, enco
     embedded_chunked_questions = add_embeddings_to_chunks(chunked_question_list, api_key, encoding_type)
 
     return embedded_chunked_questions
+
+
+def split_question_dict_to_tables(question_dict: list):
+    """
+    Splits a list of question dictionaries into metadata and embedding DataFrames,
+    using a generated primary key.
+
+    Args:
+        question_dict (list): List of dictionaries, each representing a question.
+
+    Returns:
+        Tuple[pd.DataFrame, pd.DataFrame]: metadata_df, embedding_df
+    """
+    import pandas as pd
+
+    metadata_records = []
+    embedding_records = []
+
+    for idx, item in enumerate(question_dict):
+        primary_key = f"{item['source']}_{idx}"
+
+        # Metadata (excluding embedding)
+        metadata = {k: v for k, v in item.items() if k != 'chunk_embedding'}
+        metadata['primary_key'] = primary_key
+        metadata_records.append(metadata)
+
+        # Embedding (only embedding and primary key)
+        embedding_records.append({
+            'primary_key': primary_key,
+            'chunk_embedding': item['chunk_embedding']
+        })
+
+    metadata_df = pd.DataFrame(metadata_records)
+    embedding_df = pd.DataFrame(embedding_records)
+
+    return metadata_df, embedding_df
