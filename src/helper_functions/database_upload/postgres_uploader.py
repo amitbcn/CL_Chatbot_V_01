@@ -3,7 +3,8 @@ from typing import Tuple, Dict, List
 import streamlit as st
 import os
 from sqlalchemy import inspect
-# -------------------- Wave List Extraction --------------------
+import yaml
+
 import re
 from typing import List
 from sqlalchemy.engine import Engine
@@ -15,6 +16,8 @@ yaml_file_path =  'testing_mapping.yaml'
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from typing import Optional
+
+# -------------------- Database Connection --------------------
 
 def create_postgres_engine(
     username: str = os.getenv("POSTGRES_USER"),
@@ -55,6 +58,7 @@ def create_postgres_engine(
 
     return engine
 
+# -------------------- Wave List Extraction --------------------
 
 def get_wave_n_list(engine: Engine) -> List[str]:
     """
@@ -223,38 +227,8 @@ def sanitize_column(
     # Return new column name and incremented encoding reference
     return new_col, used_encoding_ref + 1
 
-def restore_original_columns(
-    df: pd.DataFrame,
-    mapping: Dict[str, str]
-) -> pd.DataFrame:
-    """
-    Restore the original column names of a DataFrame using a provided mapping.
-
-    Parameters:
-    -----------
-    df : pd.DataFrame
-        The DataFrame whose columns need to be renamed.
-    mapping : Dict[str, str]
-        A dictionary mapping current column names to their original names.
-        Keys are the current names, and values are the original names.
-
-    Returns:
-    --------
-    pd.DataFrame
-        A new DataFrame with columns renamed to their original names where applicable.
-    """
-    # Generate the list of restored column names using the mapping
-    restored_columns = [mapping.get(col, col) for col in df.columns]
-    
-    # Create a copy of the original DataFrame to avoid modifying it in-place
-    restored_df = df.copy()
-    
-    # Rename the columns with the restored names
-    restored_df.columns = restored_columns
-
-    return restored_df
-
 # -------------------- Survey Data Chunking --------------------
+
 def get_chunks(
     df: pd.DataFrame,
     response_id_col: str,
@@ -298,57 +272,34 @@ def get_chunks(
 
     return chunks
 
-def combine_chunks(
-    engine: Engine,
-    base_table_name: str,
-    max_chunks: int = 100
-) -> pd.DataFrame:
+def read_yaml_file(file_path: str) -> dict:
     """
-    Loads and combines chunked tables from a SQL database into a single DataFrame.
+    Reads a YAML file and returns its contents as a dictionary.
 
     Parameters:
-        engine (Engine): SQLAlchemy engine for database connection.
-        base_table_name (str): The base name of the tables to combine (e.g., "wave_1_raw_data").
-                               Assumes chunked tables follow the pattern base_table_name_1, base_table_name_2, etc.
-        max_chunks (int, optional): The maximum number of chunks to attempt to load. Defaults to 100.
+    -----------
+    file_path : str
+        Path to the YAML file.
 
     Returns:
-        pd.DataFrame: The combined DataFrame containing all concatenated chunks.
-
+    --------
+    dict
+        The contents of the YAML file as a dictionary.
+    
     Raises:
-        ValueError: If the base table (first chunk) cannot be read from the database.
+    -------
+    FileNotFoundError: If the file does not exist.
+    yaml.YAMLError: If there is an error parsing the YAML.
     """
-    combined_df = None
-    st.write("Loading Survey Data!")
-
-    for idx in range(1, max_chunks + 1):
-        # Construct the table name for the current chunk
-        table_name = f"{base_table_name}_{idx}" if idx >= 1 else base_table_name
-
-        try:
-            # Attempt to load the chunk from the database
-            chunk_df = pd.read_sql_table(table_name, con=engine)
-
-            if combined_df is None:
-                # Initialize combined_df with the first chunk
-                combined_df = chunk_df
-            else:
-                # Drop the first column of the current chunk to avoid duplicate ID/index columns
-                chunk_df = chunk_df.drop(columns=[combined_df.columns[0]])
-                # Concatenate the current chunk horizontally
-                combined_df = pd.concat([combined_df, chunk_df], axis=1)
-
-        except Exception as e:
-            if idx == 1:
-                # If the first chunk fails to load, raise an error
-                raise ValueError(f"[ERROR] Could not read base table '{table_name}': {e}")
-            else:
-                # If subsequent chunks are missing, stop the loop
-                st.write("All data loaded.")
-                break
-
-    return combined_df
-
+    try:
+        with open(file_path, 'r') as file:
+            data = yaml.safe_load(file)
+        return data
+    except FileNotFoundError:
+        raise FileNotFoundError(f"[ERROR] File not found: {file_path}")
+    except yaml.YAMLError as e:
+        raise yaml.YAMLError(f"[ERROR] Failed to parse YAML file: {e}")
+    
 def update_yaml_mapping(wave_key: str, new_mapping: dict, yaml_path: str = yaml_file_path):
     """
     Updates a master YAML configuration file with a new column mapping for a specific data wave.
@@ -390,6 +341,8 @@ def update_yaml_mapping(wave_key: str, new_mapping: dict, yaml_path: str = yaml_
     except Exception as e:
         # Show an error message in case of any failure during reading or writing
         st.error(f"Failed to update YAML: {e}")
+
+# -------------------- Data Upload Orchestration --------------------
 
 def process_raw_data(file: pd.DataFrame, wave_name: str, engine: Engine, response_id_col: str = "Respondent", chunk_size: int = 60, yaml_path: str = yaml_file_path):
     """
@@ -475,4 +428,174 @@ def push_dataframe_to_postgres_db(file: pd.DataFrame, file_name: str, engine: En
         # Display error message in Streamlit if something goes wrong
         st.error(f"Error processing data: {e}")
 
+# -------------------- Data Download Orchestration --------------------
 
+def combine_chunks(
+    engine: Engine,
+    base_table_name: str,
+    max_chunks: int = 100
+) -> pd.DataFrame:
+    """
+    Loads and combines chunked tables from a SQL database into a single DataFrame.
+
+    Parameters:
+        engine (Engine): SQLAlchemy engine for database connection.
+        base_table_name (str): The base name of the tables to combine (e.g., "wave_1_raw_data").
+                               Assumes chunked tables follow the pattern base_table_name_1, base_table_name_2, etc.
+        max_chunks (int, optional): The maximum number of chunks to attempt to load. Defaults to 100.
+
+    Returns:
+        pd.DataFrame: The combined DataFrame containing all concatenated chunks.
+
+    Raises:
+        ValueError: If the base table (first chunk) cannot be read from the database.
+    """
+    combined_df = None
+    st.write("Loading Survey Data!")
+    base_table_name = base_table_name + "_raw_data"
+
+    for idx in range(1, max_chunks + 1):
+        # Construct the table name for the current chunk
+        table_name = f"{base_table_name}_{idx}" if idx >= 1 else base_table_name
+
+        try:
+            # Attempt to load the chunk from the database
+            chunk_df = pd.read_sql_table(table_name, con=engine)
+
+            if combined_df is None:
+                # Initialize combined_df with the first chunk
+                combined_df = chunk_df
+            else:
+                # Drop the first column of the current chunk to avoid duplicate ID/index columns
+                chunk_df = chunk_df.drop(columns=[combined_df.columns[0]])
+                # Concatenate the current chunk horizontally
+                combined_df = pd.concat([combined_df, chunk_df], axis=1)
+
+        except Exception as e:
+            if idx == 1:
+                # If the first chunk fails to load, raise an error
+                raise ValueError(f"[ERROR] Could not read base table '{table_name}': {e}")
+            else:
+                # If subsequent chunks are missing, stop the loop
+                st.write("All data loaded.")
+                break
+
+    return combined_df
+
+def restore_original_columns(
+    df: pd.DataFrame,
+    mapping: Dict[str, str]
+) -> pd.DataFrame:
+    """
+    Restore the original column names of a DataFrame using a provided mapping.
+
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        The DataFrame whose columns need to be renamed.
+    mapping : Dict[str, str]
+        A dictionary mapping current column names to their original names.
+        Keys are the current names, and values are the original names.
+
+    Returns:
+    --------
+    pd.DataFrame
+        A new DataFrame with columns renamed to their original names where applicable.
+    """
+    # Generate the list of restored column names using the mapping
+    restored_columns = [mapping.get(col, col) for col in df.columns]
+    
+    # Create a copy of the original DataFrame to avoid modifying it in-place
+    restored_df = df.copy()
+    
+    # Rename the columns with the restored names
+    restored_df.columns = restored_columns
+
+    return restored_df
+
+def load_related_tables(
+    engine: Engine,
+    base_table_name: str,
+    suffixes: List[str] = ["_type_subtype", "_question_guide", "_embeddings_metadata"]
+) -> Dict[str, pd.DataFrame]:
+    """
+    Loads multiple related tables by suffixing predefined strings to a base table name.
+
+    Parameters:
+    -----------
+    engine : Engine
+        SQLAlchemy engine connected to the target database.
+    base_table_name : str
+        The base name to which suffixes will be appended to form full table names.
+    suffixes : List[str], optional
+        List of suffixes to append to the base table name to form full table names.
+
+    Returns:
+    --------
+    Dict[str, pd.DataFrame]
+        A dictionary mapping each suffix (without underscore) to its loaded DataFrame.
+
+    Raises:
+    -------
+    ValueError: If any of the tables fail to load.
+    """
+    tables = {}
+    for suffix in suffixes:
+        full_table_name = f"{base_table_name}{suffix}"
+        try:
+            df = pd.read_sql_table(full_table_name, con=engine)
+            # Optional: use suffix without underscore as the key
+            tables[suffix.lstrip('_')] = df
+        except Exception as e:
+            raise ValueError(f"[ERROR] Failed to load table '{full_table_name}': {e}")
+    
+    return tables
+
+def load_full_survey_dataset(
+    engine: Engine,
+    base_table_name: str,
+    mapping_path: str,
+    max_chunks: int = 100,
+    suffixes: list = ["_type_subtype", "_question_guide", "_embeddings_metadata"]
+) -> Dict[str, pd.DataFrame]:
+    """
+    Loads a full survey dataset including combined chunked tables, restored column names,
+    and additional related tables based on predefined suffixes.
+
+    Parameters:
+    -----------
+    engine : Engine
+        SQLAlchemy engine for database connection.
+    base_table_name : str
+        The base name of the chunked data tables.
+    mapping_path : str
+        File path to the YAML file containing column name mappings.
+    max_chunks : int, optional
+        Maximum number of chunked tables to combine. Default is 100.
+    suffixes : list, optional
+        List of suffixes to append to the base name for loading additional tables.
+
+    Returns:
+    --------
+    Dict[str, pd.DataFrame]
+        A dictionary containing:
+            - 'data': Combined main survey data with restored column names.
+            - Additional related tables as DataFrames (e.g., 'type_subtype', 'question_guide', etc.).
+    """
+    # Step 1: Read column mapping from YAML
+    column_mapping = read_yaml_file(mapping_path)[base_table_name]
+
+    # Step 2: Load and combine chunked tables
+    combined_df = combine_chunks(engine, base_table_name, max_chunks=max_chunks)
+
+    # Step 3: Restore original column names
+    restored_df = restore_original_columns(combined_df, column_mapping)
+
+    # Step 4: Load related tables
+    related_tables = load_related_tables(engine, base_table_name, suffixes=suffixes)
+
+    # Step 5: Combine all results into one dictionary
+    return {
+        "mapped_raw_data": restored_df,
+        **related_tables
+    }
