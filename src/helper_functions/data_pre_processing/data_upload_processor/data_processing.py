@@ -79,6 +79,11 @@ def process_question_guide(question_guide_map_df : pd.DataFrame) -> pd.DataFrame
         pd.DataFrame: The transformed DataFrame after applying all processing steps.
     """
 
+    print("\n🚨 DEBUG: Inside process_question_guide")
+    print("Shape of data_map:", question_guide_map_df.shape)
+    print("Columns in data_map:", question_guide_map_df.columns.tolist())
+    print("First 5 rows:\n", question_guide_map_df.head())
+
     # Step 1: Format question guide
     question_guide = question_guide_formatting(question_guide_map_df)
     

@@ -1,8 +1,8 @@
 import pandas as pd
 
-from data_processing import *
-from type_subtype_categorizer import *
-from question_embedder import *
+from .data_processing import *
+from .type_subtype_categorizer import *
+from .question_embedder import *
 
 def run_question_data_pipeline(data_map: pd.DataFrame, raw_data: pd.DataFrame, api_key: str, source : str):
     """
