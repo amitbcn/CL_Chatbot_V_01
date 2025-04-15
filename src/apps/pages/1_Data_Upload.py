@@ -16,7 +16,7 @@ from helper_functions.database_upload.postgres_uploader import *
 
 #  Streamlit page setup
 st.set_page_config(page_title="Upload Data")
-st.title("Upload Raw Data")
+
 
 #  Input source name via form
 with st.form("wave_source_form"):
@@ -41,6 +41,8 @@ if "api_key" not in st.session_state:
     st.warning("No API key found.")
     st.stop()
 
+st.title("Upload Raw Data")
+
 #  Upload raw data
 raw_data = st.file_uploader("Choose a raw data Excel file", type="xlsx", key="raw_data_uploader")
 if raw_data:
@@ -49,6 +51,7 @@ if raw_data:
     st.success("Raw data uploaded successfully!")
     st.dataframe(df)
 
+st.title("Upload Data Map")
 #  Upload data map
 data_map = st.file_uploader("Choose a data map Excel file", type="xlsx", key="data_map_uploader")
 if data_map:
