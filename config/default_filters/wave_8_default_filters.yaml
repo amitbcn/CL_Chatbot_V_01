@@ -1,0 +1,45 @@
+Age:
+  mapping:
+    Baby Boomers: 
+      - '65'
+      - '200'
+    Gen X: 
+      - '45'
+      - '64'
+    Gen Z: 
+      - '0'
+      - '26'
+    Millennials:
+      - '27'
+      - '44'
+  filter_name: Generation Filter
+  survey_question: Q4
+  filter_type: categorize
+
+Geographical-Area:
+  filter_name: Area Filter
+  survey_question: Q12
+  filter_type: recreate
+
+Gender:
+  filter_name: Gender Filter
+  survey_question: Q3
+  filter_type: recreate
+
+Income:
+  mapping:
+    High:
+      - "<[currency]>100,000 to <[currency]>149,999"
+      - "<[currency]>150,000 to <[currency]>199,999"
+      - "<[currency]>200,000 or more"
+    Low:
+      - "Less than <[currency]>25,000"
+    Mid:
+      - "<[currency]>25,000 to <[currency]>49,999"
+      - "<[currency]>50,000 to <[currency]>74,999"
+      - "<[currency]>75,000 to <[currency]>99,999"
+    NA:
+      - "Prefer not to answer"
+  filter_name: Income Filter
+  survey_question: Q15
+  filter_type: categorize

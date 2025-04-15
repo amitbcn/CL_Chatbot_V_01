@@ -1,0 +1,27 @@
+Age:
+  mapping:
+    Baby Boomers: 
+      - '65'
+      - '200'
+    Gen X: 
+      - '45'
+      - '64'
+    Gen Z: 
+      - '0'
+      - '26'
+    Millennials:
+      - '27'
+      - '44'
+  filter_name: Generation Filter
+  survey_question: Q2
+  filter_type: categorize
+
+Country:
+  filter_name: Country Filter
+  survey_question: Q3
+  filter_type: recreate
+
+Gender:
+  filter_name: Gender Filter
+  survey_question: Q1
+  filter_type: recreate

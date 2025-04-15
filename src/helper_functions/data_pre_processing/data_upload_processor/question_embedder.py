@@ -2,6 +2,9 @@ import pandas as pd
 from langchain_openai import OpenAIEmbeddings
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain_experimental.text_splitter import SemanticChunker
+from sentence_transformers import SentenceTransformer
+from langchain_huggingface import HuggingFaceEmbeddings
+
 
 
 def question_df_to_dict(question_guide: pd.DataFrame, source: str = None):
@@ -44,26 +47,35 @@ def question_df_to_dict(question_guide: pd.DataFrame, source: str = None):
     return question_list
 
 
-def semantic_chunking_wrapper(text, api_key):
+def semantic_chunking_wrapper(text, embedding_type="OpenAI", api_key=None):
     """
     Splits the given text into semantically meaningful chunks using the SemanticChunker.
 
     Args:
         text (str): The input text to be chunked.
+        embedding_type (str): The type of embedding to use ("openai" or "huggingface").
+        api_key (str, optional): API key for OpenAI embeddings.
 
     Returns:
         list: A list of text chunks obtained from semantic chunking.
     """
 
-    text_splitter = SemanticChunker(OpenAIEmbeddings(api_key=api_key), breakpoint_threshold_type="standard_deviation")
-    
+    if embedding_type == "OpenAI":
+        if not api_key:
+            raise ValueError("API key is required for OpenAI embeddings.")
+        embedding_model = OpenAIEmbeddings(api_key=api_key)
+    elif embedding_type == "HuggingFace":
+        embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    else:
+        raise ValueError("Invalid embedding_type. Choose 'openai' or 'huggingface'.")
 
+    text_splitter = SemanticChunker(embedding_model, breakpoint_threshold_type="standard_deviation")
     chunks = text_splitter.split_text(text)
     
-    return chunks  # Return the list of chunks
+    return chunks
 
 
-def chunk_questions(question_list: list, api_key: str):
+def chunk_questions(question_list: list, api_key: str, embedding_type = "OpenAI"):
     """
     Applies semantic chunking to the 'question_with_answers' field for each question dictionary.
 
@@ -80,7 +92,7 @@ def chunk_questions(question_list: list, api_key: str):
 
     for question in question_list:
         # Generate semantic chunks from the full question + answers string
-        chunks = semantic_chunking_wrapper(question['question_with_answers'], api_key)
+        chunks = semantic_chunking_wrapper(question['question_with_answers'], embedding_type,api_key)
 
         # Create a new dictionary for each chunk
         for chunk in chunks:
@@ -96,35 +108,34 @@ def chunk_questions(question_list: list, api_key: str):
     return chunked_questions
 
 
-def encoding(text, api_key, type_of_encoding="OpenAI"):
+def encoding(text, api_key=None, type_of_encoding="OpenAI"):
     """
     Encodes the given text into an embedding vector using the specified encoding method.
 
     Args:
         text (str): The input text to be encoded.
-        api_key (str): API key for authentication with the embedding model.
-        type_of_encoding (str, optional): Specifies the encoding type. Defaults to "OpenAI".
+        api_key (str, optional): API key for authentication with the embedding model (required for OpenAI).
+        type_of_encoding (str, optional): Specifies the encoding type. "OpenAI" or "HuggingFace". Defaults to "OpenAI".
 
     Returns:
         list or None: A list representing the embedding vector if encoding is successful,
                       otherwise None if the encoding type is unsupported.
     """
     if type_of_encoding == "OpenAI":
-        # Initialize the OpenAI Embeddings model with the specified parameters
+        from langchain.embeddings import OpenAIEmbeddings
+
         embeddings = OpenAIEmbeddings(
-            model="text-embedding-3-large",  # Specifies the embedding model
-            # With the `text-embedding-3` class of models,
-            # you can specify the size of the embeddings you want returned.
-            # dimensions=1024,  # Uncomment to set custom dimensions if needed
-            api_key=api_key  # API key for authentication
+            model="text-embedding-3-large",
+            api_key=api_key
         )
+        return embeddings.embed_query(text)
 
-        # Generate embeddings for the input text
-        encoded_text = embeddings.embed_query(text)
-        
-        return encoded_text  # Return the generated embedding vector
+    elif type_of_encoding == "HuggingFace":
+        model = SentenceTransformer("all-MiniLM-L6-v2")  # lightweight and free
+        return model.encode(text).tolist()  # Convert to list to match return type
 
-    return None  # Return None if the encoding type is unsupported
+    return None  # Unsupported encoding type
+
 
 
 def add_embeddings_to_chunks(chunked_questions: list, api_key: str, encoding_type: str = "OpenAI"):
@@ -171,7 +182,7 @@ def process_question_list_pipeline(question_df: pd.DataFrame, api_key: str, enco
     question_list = question_df_to_dict(question_df, source=source)
 
     # Step 2: Chunk the combined question + answer text using semantic chunking
-    chunked_question_list = chunk_questions(question_list, api_key)
+    chunked_question_list = chunk_questions(question_list, api_key, embedding_type = encoding_type)
 
     # Step 3: Add embeddings to each chunk
     embedded_chunked_questions = add_embeddings_to_chunks(chunked_question_list, api_key, encoding_type)
