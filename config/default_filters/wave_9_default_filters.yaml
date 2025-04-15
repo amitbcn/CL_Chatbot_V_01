@@ -1,0 +1,93 @@
+Age:
+  mapping:
+    Baby Boomers: 
+      - '65'
+      - '200'
+    Gen X: 
+      - '45'
+      - '64'
+    Gen Z: 
+      - '0'
+      - '26'
+    Millennials:
+      - '27'
+      - '44'
+  filter_name: Generation Filter
+  survey_question: Q4
+  filter_type: categorize
+
+Political-Alignment:
+  mapping:
+    "No Strong Alignment":
+      - 1 - Not at all aligned
+      - "2"
+      - "4"
+      - 3 - Neutral
+    "Strong Alignment":
+      - 5 - Strongly aligned
+  filter_name: Political Alignment Filter
+  survey_question: Q52
+  filter_type: categorize
+
+Geographical-Area:
+  filter_name: Area Filter
+  survey_question: Q7
+  filter_type: recreate
+
+Country:
+  filter_name: Country Filter
+  survey_question: Country_Name
+  filter_type: recreate
+
+Gender:
+  filter_name: Gender Filter
+  survey_question: Q3
+  filter_type: recreate
+
+Income:
+  mapping:
+    High:
+      - "<currency>100,000 to <currency>149,999"
+      - "<currency>150,000 to <currency>199,999"
+      - "<currency>200,000 or more"
+    Low:
+      - "Less than <currency>25,000"
+    Mid:
+      - "<currency>25,000 to <currency>49,999"
+      - "<currency>50,000 to <currency>74,999"
+      - "<currency>75,000 to <currency>99,999"
+    NA:
+      - "Prefer not to answer"
+  filter_name: Income Filter
+  survey_question: Q13
+  filter_type: categorize
+
+Political-Affinity:
+  mapping:
+    Center:
+      - Independent
+      - Center
+    Center left:
+      - Labour
+      - Labour|Social Democrat
+      - Liberal Democrat
+      - Center-left
+    Center right:
+      - Center-right
+    Far-Left:
+      - Far-left
+    Far-Right:
+      - Far-right
+    Left:
+      - Democrat
+      - Left
+    None:
+      - None, I do not feel aligned with any parties
+    Other:
+      - Other (please specify)
+    Right:
+      - Republican|Conservative
+      - Right
+  filter_name: Political Affinity Filter
+  survey_question: Q51
+  filter_type: categorize

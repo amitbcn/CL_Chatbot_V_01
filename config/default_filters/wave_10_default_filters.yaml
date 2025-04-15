@@ -1,0 +1,186 @@
+Age:
+  mapping:
+    Baby Boomers: 
+     - '65'
+     - '200'
+    Gen X: 
+    - '45'
+    - '64'
+    Gen Z: 
+    - '0'
+    - '26'
+    Millennials:
+    - '27'
+    - '44'
+  filter_name: Generation Filter
+  survey_question: Q4
+  filter_type: categorize
+
+Alcohol-Consumption:
+  mapping:
+    "Alcohol Averse":
+      - "I’m drinking less alcohol than I used to"
+      - "I don't consume alcohol"
+    "Alcohol Consumer":
+      - "I’m drinking about the same amount of alcohol"
+      - "I’m drinking more alcohol than I used to"
+  filter_name: Alcohol Consumption Filter
+  survey_question: Q55
+  filter_type: categorize
+
+Political-Alignment:
+  mapping:
+    "No Strong Alignment":
+      - 1 - Not at all aligned
+      - "2"
+      - "4"
+      - 3 - Neutral
+    "Strongly Aligned":
+      - 5 - Strongly aligned
+  filter_name: Political Alignment Filter
+  survey_question: Q59
+  filter_type: categorize
+
+Geographical-Area:
+  filter_name: Area Filter
+  survey_question: Q6
+  filter_type: recreate
+
+Country:
+  mapping:
+    France:
+      - '4'
+    Germany:
+      - '5'
+    Italy:
+      - '3'
+    Poland:
+      - '6'
+    Spain:
+      - '7'
+    United Kingdom:
+      - '2'
+    United States:
+      - '1'
+  filter_name: Country Filter
+  survey_question: country
+  filter_type: categorize
+
+Gender:
+  filter_name: Gender Filter
+  survey_question: Q3
+  filter_type: recreate
+
+Income:
+  mapping:
+    High:
+      - "<currency>100,000 to <currency>149,999"
+      - "<currency>150,000 to <currency>199,999"
+      - '<currency>200,000 or more'
+    Low:
+      - "Less than <currency>25,000"
+    Mid:
+      - "<currency>25,000 to <currency>49,999"
+      - "<currency>50,000 to <currency>74,999"
+      - "<currency>75,000 to <currency>99,999"
+    No Response:
+      - "Prefer not to answer"
+  filter_name: Income Filter
+  survey_question: Q11
+  filter_type: categorize
+
+Political-Affinity:
+  mapping:
+    Center:
+      - Independent
+      - Center
+    Center left:
+      - Labour
+      - Labour|Social Democrat
+      - Liberal Democrat
+      - Center-left
+    Center right:
+      - Center-right
+    Far-Left:
+      - Far-left
+    Far-Right:
+      - Far-right
+    Left:
+      - Democrat
+      - Left
+    None:
+      - None, I do not feel aligned with any parties
+    Other:
+      - Other (please specify)
+    Right:
+      - Republican|Conservative
+      - Right
+  filter_name: Political Affinity Filter
+  survey_question: Q58
+  filter_type: categorize
+
+US-Region:
+  mapping:
+    East North Central:
+      - Illinois
+      - Indiana
+      - Michigan
+      - Ohio
+      - Wisconsin
+    East South Central:
+      - Alabama
+      - Kentucky
+      - Mississippi
+      - Tennessee
+    Middle Atlantic:
+      - New Jersey
+      - New York
+      - Pennsylvania
+    Mountain:
+      - Arizona
+      - Colorado
+      - Idaho
+      - Montana
+      - New Mexico
+      - Nevada
+      - Utah
+      - Wyoming
+    New England:
+      - Connecticut
+      - Maine
+      - Massachusetts
+      - New Hampshire
+      - Rhode Island
+      - Vermont
+    Pacific:
+      - California
+      - Oregon
+      - Washington
+      - Hawaii
+      - Alaska
+    South Atlantic:
+      - Delaware
+      - Florida
+      - Georgia
+      - Maryland
+      - North Carolina
+      - South Carolina
+      - Virginia
+      - West Virginia
+      - District of Columbia
+    West North Central:
+      - Iowa
+      - Kansas
+      - Minnesota
+      - Missouri
+      - Nebraska
+      - North Dakota
+      - South Dakota
+    West South Central:
+      - Arkansas
+      - Louisiana
+      - Oklahoma
+      - Texas
+  filter_name: Region Filter
+  survey_question: first_param
+  filter_type: categorize
