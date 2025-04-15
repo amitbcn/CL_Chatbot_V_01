@@ -1,5 +1,12 @@
-from helper_functions.query_mapping.query_mapping_functions import *
-from helper_functions.CL_Cuts.cuts import *
+
+import sys
+import os
+
+# Add project root to sys.path in Jupyter or interactive session
+sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "../../../")))
+
+from src.helper_functions.query_mapping.query_mapping_functions import *
+from src.helper_functions.CL_Cuts.cuts import *
 import json
 
 ####################################################################################################################
