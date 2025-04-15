@@ -117,3 +117,15 @@ def add_filtering_columns(df: pd.DataFrame, default_filters: dict) -> pd.DataFra
     
     return df
 
+def generate_filter_value_dict(df, default_filters):
+    result = {}
+
+    for key, value in default_filters.items():
+        filter_name = value['filter_name']
+
+        if filter_name in df.columns:
+            unique_values = df[filter_name].dropna().unique()
+            result[filter_name] = ', '.join(map(str, sorted(unique_values)))
+        else:
+            result[filter_name] = ''  # Or maybe 'Column not found' if you want to flag it
+    return result
