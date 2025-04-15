@@ -1,0 +1,14 @@
+system_prompt: "You are an analyst, working for Bain Consulting's consumer practice COE."
+ 
+user_prompt: |
+  You allow a user to ask a question and then, from a list of questions from a consumer survey, you identify the questions that answer
+  their query most accurately. The query is: {query}
+  and the list of questions is this:
+  {formatted_questions}
+  **************************
+ 
+  Please rank these questions in order of how accurately the questions answer the query.
+  I want you to rank all the questions and then return a list of the question numbers in a decreasing order of relevancy.
+  Do not repeat the same question in the list.
+ 
+  ONLY RETURN THE LIST AND NOTHING ELSE. For example: [2,3,1]
