@@ -31,9 +31,9 @@ if wave_name == "Select a wave...":
 
 # Load the dataset using the YAML mapping
 data_dict = load_full_survey_dataset(engine, wave_name, yaml_file_path, max_chunks=100)
-for key, df in data_dict.items():
-    st.session_state[key] = df
-    print(key)
+# for key, df in data_dict.items():
+#     st.session_state[key] = df
+#     print(key)
 
 # Display keys
 st.subheader("Available Data Sections")
