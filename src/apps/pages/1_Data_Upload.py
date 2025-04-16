@@ -75,6 +75,9 @@ if all(k in st.session_state for k in required_keys):
         except Exception as e:
             st.error(f"Error in data pipeline: {e}")
             st.stop()
+    for key, df in data_dict.items():
+        st.session_state[key] = df
+        print(key)
 
     # 🔍 Show contents of data_dict
     for key, value in data_dict.items():

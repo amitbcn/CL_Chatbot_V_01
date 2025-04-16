@@ -92,18 +92,21 @@ def make_get_question_info_tool(question_dict,prompt_for_sorting,model,type_subt
 
 
 
-def make_multi_select_pivot_tool(df, filters):
+def make_multi_select_pivot_tool(df,filters):
     def _multi_select_pivot_tool(tool_input: str) -> str:
+        print(tool_input)
         try:
-            # Parse input
-            tool_args = tool_input if isinstance(tool_input, dict) else json.loads(tool_input)
+            # Handles both actual dict input and stringified JSON input
+            tool_args = ast.literal_eval(tool_input)#tool_input if isinstance(tool_input, dict) else json.loads(tool_input)
+
             query = tool_args["query"]
             question_id = tool_args["question_id"]
 
-            # Extract demographics
-            demographics = extract_demographics(query, filters)
+            demographics = extract_demographics(query,filters)
             if not isinstance(demographics, list):
                 demographics = [demographics]
+
+            print(demographics)
 
         except Exception as e:
             return f"Tool failed to parse input: {e}"
@@ -111,15 +114,30 @@ def make_multi_select_pivot_tool(df, filters):
         try:
             local_df = df.copy()
 
-            # Apply extra filters from the query
+            # Apply any filters detected from the user query
             extra_filters = extract_filters(query, filters)
+            print(extra_filters)
             filtered_dict = {k: v for k, v in extra_filters.items() if k not in demographics}
-            local_df = filter_dataframe(local_df, filtered_dict)
+            local_df = filter_dataframe(local_df,filtered_dict)
 
-            # Use the clean pivot logic from the standalone function
-            pivot_result = multi_select_pivot(local_df, question_id, demographics)
+            # Proceed with pivot
+            question_cols = [col for col in local_df.columns if col.startswith(question_id)]
+            if not question_cols:
+                raise ValueError("No columns found for the question ID")
+            
+            
 
-            return pivot_result.to_markdown()
+            melted = local_df[question_cols + demographics].melt(
+                id_vars=demographics,
+                var_name="Question_Option",
+                value_name="Selected"
+            )
+            filtered = melted[melted["Selected"] == 1]
+            grouped = filtered.groupby(["Question_Option"] + demographics).size().reset_index(name="Count")
+            pivot_table = grouped.pivot_table(index="Question_Option", columns=demographics, values="Count", fill_value=0)
+
+            pivot_table.loc["Total"] = pivot_table.sum()
+            return pivot_table.to_markdown()
         except Exception as e:
             return f"Pivot generation failed: {e}"
     return _multi_select_pivot_tool
@@ -127,18 +145,20 @@ def make_multi_select_pivot_tool(df, filters):
 
 
 
-def make_pivot_count_tool(df, filters):
+def make_pivot_count_tool(df,filters):
     def _pivot_count_tool(tool_input: str) -> str:
         try:
-            # Parse tool input
             tool_args = tool_input if isinstance(tool_input, dict) else ast.literal_eval(tool_input)
             query = tool_args["query"]
             question_id = tool_args["question_id"]
 
-            # Extract demographics
-            demographics = extract_demographics(query=query, filter_dict=filters)
+
+            demographics = extract_demographics(query=query,filter_dict=filters)
+
             if not isinstance(demographics, list):
                 demographics = [demographics]
+
+                
 
         except Exception as e:
             return f"Tool failed to parse input: {e}"
@@ -146,18 +166,19 @@ def make_pivot_count_tool(df, filters):
         try:
             local_df = df.copy()
 
-            # Apply extra filters (not including demographic filters)
+            # Extra filters from input (e.g., income=Low)
             extra_filters = extract_filters(query, filters)
+            print(extra_filters)
             filtered_dict = {k: v for k, v in extra_filters.items() if k not in demographics}
-            local_df = filter_dataframe(local_df, filtered_dict)
+            local_df = filter_dataframe(local_df,filtered_dict)
 
-            # Validate that the question_id exists
+            # Validate that the column exists
             if question_id not in local_df.columns:
                 return f"Column '{question_id}' not found."
 
-            # Use modular pivot_count function
-            pivot = pivot_count(local_df, groupby_col=question_id, column_col=demographics[0])  # assumes 1 demographic
-
+            # Build pivot
+            pivot = local_df.pivot_table(index=question_id, columns=demographics, aggfunc="size", fill_value=0)
+            pivot.loc["Total"] = pivot.sum()
             return pivot.to_markdown()
         except Exception as e:
             return f"Pivot generation failed: {e}"
